@@ -117,3 +117,15 @@ services:
       restart_policy:
         condition: on-failure
         max_attempts: 5
+
+  # 5. Node Exporter - EC2 메트릭 수집
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 5
+

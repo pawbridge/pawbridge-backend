@@ -92,6 +92,7 @@ services:
       - pawbridge-network
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
     deploy:
       restart_policy:
         condition: on-failure
@@ -105,12 +106,31 @@ services:
       - "3000:3000"
     networks:
       - pawbridge-network
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD}
     deploy:
       restart_policy:
         condition: on-failure
         max_attempts: 5
 
-  # 7. Nginx (HTTPS Proxy)
+  # 7. Node Exporter - EC2 메트릭 수집
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    ports:
+      - "9100:9100"
+    networks:
+      - pawbridge-network
+    deploy:
+      restart_policy:
+        condition: on-failure
+        max_attempts: 5
+
+  # 8. Nginx (HTTPS Proxy)
   nginx:
     image: nginx:latest
     container_name: nginx

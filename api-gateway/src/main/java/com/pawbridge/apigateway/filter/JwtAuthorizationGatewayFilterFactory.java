@@ -44,7 +44,13 @@ public class JwtAuthorizationGatewayFilterFactory
             "/api/v1/posts/read/*",                // 게시글 단건 조회
             "/api/v1/posts/read",                   // 게시글 목록 조회
             "/api/v1/posts/search",                 // 검색
-            "/api/v1/comments/posts/read/*"        // 특정 게시글 댓글 목록 조회
+            "/api/v1/comments/posts/read/*",       // 특정 게시글 댓글 목록 조회
+            // 동물 관련 공개 API
+            "/api/v1/animals",                     // 동물 목록 조회
+            "/api/v1/animals/*",                   // 동물 상세 조회
+            "/api/v1/animals/expiring-soon",       // 공고 종료 임박 동물
+            "/api/v1/shelters",                    // 보호소 목록 조회
+            "/api/v1/shelters/*"                   // 보호소 상세 조회
     );
 
     // ROLE_ADMIN만 접근 가능한 경로 (프론트엔드 요청 기준, v1 없음)

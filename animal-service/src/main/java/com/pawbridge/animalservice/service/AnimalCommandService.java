@@ -7,6 +7,7 @@ import com.pawbridge.animalservice.dto.response.AnimalDetailResponse;
 import com.pawbridge.animalservice.entity.Animal;
 import com.pawbridge.animalservice.entity.Shelter;
 import com.pawbridge.animalservice.enums.AnimalStatus;
+import com.pawbridge.animalservice.enums.ApiSource;
 import com.pawbridge.animalservice.event.AnimalCreatedEvent;
 import com.pawbridge.animalservice.event.AnimalStatusChangedEvent;
 import com.pawbridge.animalservice.event.AnimalUpdatedEvent;
@@ -44,6 +45,7 @@ public class AnimalCommandService {
     private final ShelterRepository shelterRepository;
     private final AnimalMapper mapper;
     private final OutboxService outboxService;
+    private final NoticeNumberGenerator noticeNumberGenerator;
 
     /**
      * 동물 생성 (보호소 직접 등록)
@@ -53,9 +55,20 @@ public class AnimalCommandService {
      */
     @Transactional
     public AnimalDetailResponse create(CreateAnimalRequest request) {
-        // Shelter 조회
-        Shelter shelter = shelterRepository.findById(request.getShelterId())
-                .orElseThrow(() -> new EntityNotFoundException("Shelter not found: " + request.getShelterId()));
+        // Shelter 조회 (careRegNo로)
+        Shelter shelter = shelterRepository.findByCareRegNo(request.getCareRegNo())
+                .orElseThrow(() -> new EntityNotFoundException("Shelter not found: " + request.getCareRegNo()));
+
+        // apiSource 기본값 처리 (미입력 시 MANUAL)
+        if (request.getApiSource() == null) {
+            request.setApiSource(ApiSource.MANUAL);
+        }
+
+        // 수동 등록 시 공고번호 자동 생성
+        if (request.getApiSource() == ApiSource.MANUAL && 
+            (request.getApmsNoticeNo() == null || request.getApmsNoticeNo().isBlank())) {
+            request.setApmsNoticeNo(noticeNumberGenerator.generate());
+        }
 
         // DTO → Entity 변환
         Animal animal = mapper.toEntity(request, shelter);

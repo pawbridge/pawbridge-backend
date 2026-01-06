@@ -6,7 +6,7 @@ on:
     paths:
       - 'infrastructure/elasticsearch/**'
       - 'infrastructure/kafka/**'
-      - 'infrastructure/prod/**'
+      - 'infrastructure/prod/connectors/**'
       - '.github/workflows/deploy-elastic-connect.yml'
       - 'deployment/docker-compose-node-5.yml'
 

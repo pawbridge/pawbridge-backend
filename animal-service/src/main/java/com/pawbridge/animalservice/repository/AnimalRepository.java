@@ -154,4 +154,12 @@ public interface AnimalRepository extends JpaRepository<Animal, Long>,
      */
     @Query("SELECT a FROM Animal a WHERE a.status = 'PROTECT' AND a.noticeEndDate < :today")
     List<Animal> findExpiredProtectAnimals(@Param("today") LocalDate today);
+
+    /**
+     * 특정 prefix로 시작하는 공고번호 개수 조회
+     * - 수동 등록 순번 생성용
+     * @param prefix 공고번호 prefix (예: "MAN-251230-")
+     * @return 개수
+     */
+    long countByApmsNoticeNoStartingWith(String prefix);
 }

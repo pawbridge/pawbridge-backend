@@ -1,0 +1,57 @@
+name: Deploy Monitoring Config
+
+on:
+  push:
+    branches: [ "dev" ]
+    paths:
+      - 'infrastructure/prod/prometheus/**'
+      - 'infrastructure/prod/grafana/**'
+      - '.github/workflows/deploy-monitoring.yml'
+
+jobs:
+  deploy-monitoring:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # 1. prometheus.yml 환경변수 치환
+      - name: Replace environment variables in prometheus.yml
+        run: |
+          export NODE2_PRIVATE_IP=${{ secrets.NODE2_PRIVATE_IP }}
+          export NODE3_PRIVATE_IP=${{ secrets.NODE3_PRIVATE_IP }}
+          export NODE4_PRIVATE_IP=${{ secrets.NODE4_PRIVATE_IP }}
+          export NODE5_PRIVATE_IP=${{ secrets.NODE5_PRIVATE_IP }}
+          envsubst < infrastructure/prod/prometheus/prometheus.yml > prometheus.yml.tmp
+          mv prometheus.yml.tmp infrastructure/prod/prometheus/prometheus.yml
+
+      # 2. 모니터링 설정 파일 전송
+      - name: Copy Monitoring Config to Node-1
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.EC2_HOST_1 }}
+          username: ubuntu
+          key: ${{ secrets.EC2_KEY }}
+          source: "infrastructure/prod/prometheus,infrastructure/prod/grafana"
+          target: "~/deploy"
+          strip_components: 0
+
+      # 2. 파일 정리 및 서비스 재시작
+      - name: Organize and Restart Monitoring Services
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST_1 }}
+          username: ubuntu
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            cd ~/deploy
+            
+            # 파일 정리
+            mv infrastructure/prod/prometheus/prometheus.yml ./ 2>/dev/null || true
+            rm -rf grafana 2>/dev/null || true
+            mv infrastructure/prod/grafana ./ 2>/dev/null || true
+            rm -rf infrastructure 2>/dev/null || true
+            
+            # Prometheus, Grafana 컨테이너 재생성 (볼륨 마운트 새로 적용)
+            docker compose up -d --force-recreate prometheus grafana
+            
+            echo "Monitoring config updated and services recreated"

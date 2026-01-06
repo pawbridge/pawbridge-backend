@@ -26,17 +26,19 @@ public class CreateAnimalRequest {
 
     // 필수 필드 (9개)
     /**
-     * 보호소 ID
+     * 보호소 등록번호
+     * - 예: "411310000001"
+     * - /api/users/me에서 careRegNo 획득
      */
-    @NotNull(message = "보호소 ID는 필수입니다")
-    private Long shelterId;
+    @NotBlank(message = "보호소 등록번호는 필수입니다")
+    @Size(max = 50, message = "보호소 등록번호는 50자 이하여야 합니다")
+    private String careRegNo;
 
     /**
-     * 공고번호
-     * - 예: "경기-양평-2025-00429"
-     * - UNIQUE 제약으로 중복 방지
+     * 공고번호 (선택)
+     * - APMS 데이터: 직접 입력 (예: "경기-양평-2025-00429")
+     * - 수동 등록: 미입력 시 자동 생성 (예: "MAN-251230-000001")
      */
-    @NotBlank(message = "공고번호는 필수입니다")
     @Size(max = 100, message = "공고번호는 100자 이하여야 합니다")
     private String apmsNoticeNo;
 
@@ -78,10 +80,10 @@ public class CreateAnimalRequest {
     private AnimalStatus status;
 
     /**
-     * 데이터 출처
+     * 데이터 출처 (선택, 기본값: MANUAL)
      * - MANUAL(수동등록), APMS_ANIMAL(APMS API) 등
+     * - 미입력 시 MANUAL로 처리
      */
-    @NotNull(message = "데이터 출처는 필수입니다")
     private ApiSource apiSource;
 
     // 선택 필드 (9개)

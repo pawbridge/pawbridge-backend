@@ -44,7 +44,7 @@ jobs:
           host: ${{ secrets.EC2_HOST_1 }}
           username: ubuntu
           key: ${{ secrets.EC2_KEY }}
-          source: "deployment/docker-compose-node-1.yml,deployment/nginx.conf,infrastructure/prod/prometheus.yml"
+          source: "deployment/docker-compose-node-1.yml,deployment/nginx.conf,infrastructure/prod/prometheus,infrastructure/prod/grafana"
           target: "~/deploy"
           strip_components: 0
 
@@ -59,7 +59,8 @@ jobs:
             # 파일 정리 (폴더 구조 flatten)
             mv deployment/docker-compose-node-1.yml ./ 2>/dev/null || true
             mv deployment/nginx.conf ./ 2>/dev/null || true
-            mv infrastructure/prod/prometheus.yml ./ 2>/dev/null || true
+            mv infrastructure/prod/prometheus/prometheus.yml ./ 2>/dev/null || true
+            mv infrastructure/prod/grafana ./ 2>/dev/null || true
             rm -rf deployment infrastructure 2>/dev/null || true
 
       - name: Deploy to Node-1
