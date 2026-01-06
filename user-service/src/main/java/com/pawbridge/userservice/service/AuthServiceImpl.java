@@ -3,8 +3,6 @@ package com.pawbridge.userservice.service;
 import com.pawbridge.userservice.email.service.EmailVerificationService;
 import com.pawbridge.userservice.dto.request.PasswordResetRequestDto;
 import com.pawbridge.userservice.dto.request.PasswordResetVerifyDto;
-import com.pawbridge.userservice.dto.request.RefreshTokenRequestDto;
-import com.pawbridge.userservice.dto.response.RefreshTokenResponseDto;
 import com.pawbridge.userservice.entity.RefreshToken;
 import com.pawbridge.userservice.entity.User;
 import com.pawbridge.userservice.exception.PasswordResetCodeInvalidException;
@@ -15,6 +13,9 @@ import com.pawbridge.userservice.exception.UserNotFoundException;
 import com.pawbridge.userservice.jwt.JwtProvider;
 import com.pawbridge.userservice.repository.RefreshTokenRepository;
 import com.pawbridge.userservice.repository.UserRepository;
+import com.pawbridge.userservice.util.CookieUtil;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,41 +37,44 @@ public class AuthServiceImpl implements AuthService {
     private final JwtProvider jwtProvider;
     private final PasswordEncoder passwordEncoder;
     private final EmailVerificationService emailVerificationService;
+    private final CookieUtil cookieUtil;
 
     /**
      * Refresh Token을 사용하여 새로운 Access Token과 Refresh Token 발급
      */
     @Override
     @Transactional
-    public RefreshTokenResponseDto refreshToken(RefreshTokenRequestDto requestDto) {
-        String refreshTokenValue = requestDto.refreshToken();
+    public void refreshToken(HttpServletRequest request, HttpServletResponse response) {
+        // 1. 쿠키에서 Refresh Token 추출
+        String refreshTokenValue = cookieUtil.getRefreshToken(request)
+                .orElseThrow(RefreshTokenNotFoundException::new);
 
-        // 1. Refresh Token JWT 유효성 검증
+        // 2. Refresh Token JWT 유효성 검증
         if (!jwtProvider.validateRefreshToken(refreshTokenValue)) {
             throw new TokenInvalidException();
         }
 
-        // 2. DB에서 Refresh Token 조회
+        // 3. DB에서 Refresh Token 조회
         RefreshToken refreshToken = refreshTokenRepository.findByToken(refreshTokenValue)
                 .orElseThrow(RefreshTokenNotFoundException::new);
 
-        // 3. Refresh Token 만료 여부 확인
+        // 4. Refresh Token 만료 여부 확인
         if (refreshToken.isExpired()) {
             refreshTokenRepository.delete(refreshToken);
             throw new RefreshTokenExpiredException();
         }
 
-        // 4. 사용자 정보 조회
+        // 5. 사용자 정보 조회
         User user = userRepository.findById(refreshToken.getUserId())
                 .orElseThrow(UserNotFoundException::new);
 
-        // 5. 새로운 Access Token 생성
+        // 6. 새로운 Access Token 생성
         String newAccessToken = jwtProvider.createAccessToken(user);
 
-        // 6. 새로운 Refresh Token 생성
+        // 7. 새로운 Refresh Token 생성
         String newRefreshToken = jwtProvider.createRefreshToken();
 
-        // 7. DB의 Refresh Token 업데이트
+        // 8. DB의 Refresh Token 업데이트
         long refreshTokenExpirationMs = jwtProvider.getRefreshTokenExpiration();
         LocalDateTime newExpiresAt = LocalDateTime.now()
                 .plusSeconds(TimeUnit.MILLISECONDS.toSeconds(refreshTokenExpirationMs));
@@ -78,8 +82,9 @@ public class AuthServiceImpl implements AuthService {
         refreshToken.updateToken(newRefreshToken, newExpiresAt);
         refreshTokenRepository.save(refreshToken);
 
-        // 8. 응답 반환
-        return new RefreshTokenResponseDto(newAccessToken, newRefreshToken);
+        // 9. 쿠키에 새 토큰 설정
+        cookieUtil.createAccessTokenCookie(response, newAccessToken);
+        cookieUtil.createRefreshTokenCookie(response, newRefreshToken);
     }
 
     /**
@@ -87,8 +92,13 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     @Transactional
-    public void logout(Long userId) {
+    public void logout(Long userId, HttpServletResponse response) {
+        // DB에서 Refresh Token 삭제
         refreshTokenRepository.deleteByUserId(userId);
+
+        // 쿠키 삭제
+        cookieUtil.deleteAccessTokenCookie(response);
+        cookieUtil.deleteRefreshTokenCookie(response);
     }
 
     /**

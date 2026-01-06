@@ -97,11 +97,11 @@ public class JwtAuthorizationGatewayFilterFactory
                 return chain.filter(exchange);
             }
 
-            // Authorization 헤더에서 토큰 추출
-            String token = extractToken(request);
+            // 쿠키에서 토큰 추출
+            String token = extractTokenFromCookie(request);
 
             if (token == null) {
-                log.warn("Authorization 헤더 없음: {}", path);
+                log.warn("쿠키에 토큰 없음: {}", path);
                 return onError(exchange, "인증 토큰이 필요합니다.", HttpStatus.UNAUTHORIZED);
             }
 
@@ -166,13 +166,14 @@ public class JwtAuthorizationGatewayFilterFactory
     }
 
     /**
-     * Authorization 헤더에서 Bearer 토큰 추출
+     * 쿠키에서 accessToken 추출 (WebFlux 방식)
      */
-    private String extractToken(ServerHttpRequest request) {
-        String authHeader = request.getHeaders().getFirst("Authorization");
+    private String extractTokenFromCookie(ServerHttpRequest request) {
+        var cookies = request.getCookies();
+        var tokenCookies = cookies.get("accessToken");
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return authHeader.substring(7);
+        if (tokenCookies != null && !tokenCookies.isEmpty()) {
+            return tokenCookies.get(0).getValue();
         }
 
         return null;

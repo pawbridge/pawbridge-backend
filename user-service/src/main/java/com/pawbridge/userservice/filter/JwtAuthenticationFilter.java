@@ -8,6 +8,7 @@ import com.pawbridge.userservice.entity.User;
 import com.pawbridge.userservice.jwt.JwtProvider;
 import com.pawbridge.userservice.repository.RefreshTokenRepository;
 import com.pawbridge.userservice.security.PrincipalDetails;
+import com.pawbridge.userservice.util.CookieUtil;
 import com.pawbridge.userservice.util.CustomResponseUtil;
 import com.pawbridge.userservice.util.ResponseDTO;
 import jakarta.servlet.FilterChain;
@@ -35,15 +36,18 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
 
     private final JwtProvider jwtProvider;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final CookieUtil cookieUtil;
 
     public JwtAuthenticationFilter(
             AuthenticationManager authenticationManager,
             JwtProvider jwtProvider,
-            RefreshTokenRepository refreshTokenRepository
+            RefreshTokenRepository refreshTokenRepository,
+            CookieUtil cookieUtil
     ) {
         super.setAuthenticationManager(authenticationManager);
         this.jwtProvider = jwtProvider;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.cookieUtil = cookieUtil;
         // 로그인 엔드포인트 설정
         setFilterProcessesUrl("/api/v1/auth/login");
     }
@@ -124,8 +128,12 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                         }
                 );
 
-        // 응답 데이터 생성
-        LoginResponseDto loginResponseDto = LoginResponseDto.fromEntity(user, accessToken, refreshToken);
+        // 쿠키에 토큰 설정
+        cookieUtil.createAccessTokenCookie(response, accessToken);
+        cookieUtil.createRefreshTokenCookie(response, refreshToken);
+
+        // 응답 데이터 생성 (토큰 제외)
+        LoginResponseDto loginResponseDto = LoginResponseDto.fromEntity(user);
 
         // ResponseDTO로 감싸기
         ResponseDTO<LoginResponseDto> responseDTO = ResponseDTO.okWithData(

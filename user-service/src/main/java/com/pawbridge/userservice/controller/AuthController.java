@@ -2,10 +2,10 @@ package com.pawbridge.userservice.controller;
 
 import com.pawbridge.userservice.dto.request.PasswordResetRequestDto;
 import com.pawbridge.userservice.dto.request.PasswordResetVerifyDto;
-import com.pawbridge.userservice.dto.request.RefreshTokenRequestDto;
-import com.pawbridge.userservice.dto.response.RefreshTokenResponseDto;
 import com.pawbridge.userservice.service.AuthService;
 import com.pawbridge.userservice.util.ResponseDTO;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,15 +22,15 @@ public class AuthController {
      * 토큰 재발급
      */
     @PostMapping("/refresh")
-    public ResponseEntity<ResponseDTO<RefreshTokenResponseDto>> refreshToken(
-            @Valid @RequestBody RefreshTokenRequestDto requestDto) {
+    public ResponseEntity<ResponseDTO<Void>> refreshToken(
+            HttpServletRequest request,
+            HttpServletResponse response) {
 
-        RefreshTokenResponseDto responseDto = authService.refreshToken(requestDto);
-        ResponseDTO<RefreshTokenResponseDto> response = ResponseDTO.okWithData(
-                responseDto, "토큰이 재발급되었습니다.");
+        authService.refreshToken(request, response);
+        ResponseDTO<Void> responseDTO = ResponseDTO.okWithMessage("토큰이 재발급되었습니다.");
         return ResponseEntity
-                .status(response.getCode())
-                .body(response);
+                .status(responseDTO.getCode())
+                .body(responseDTO);
     }
 
     /**
@@ -38,13 +38,14 @@ public class AuthController {
      */
     @PostMapping("/logout")
     public ResponseEntity<ResponseDTO<Void>> logout(
-            @RequestHeader("X-User-Id") Long userId) {
+            @RequestHeader("X-User-Id") Long userId,
+            HttpServletResponse response) {
 
-        authService.logout(userId);
-        ResponseDTO<Void> response = ResponseDTO.okWithMessage("로그아웃되었습니다.");
+        authService.logout(userId, response);
+        ResponseDTO<Void> responseDTO = ResponseDTO.okWithMessage("로그아웃되었습니다.");
         return ResponseEntity
-                .status(response.getCode())
-                .body(response);
+                .status(responseDTO.getCode())
+                .body(responseDTO);
     }
 
     /**

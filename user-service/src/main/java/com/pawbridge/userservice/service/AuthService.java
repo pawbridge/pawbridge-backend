@@ -2,20 +2,20 @@ package com.pawbridge.userservice.service;
 
 import com.pawbridge.userservice.dto.request.PasswordResetRequestDto;
 import com.pawbridge.userservice.dto.request.PasswordResetVerifyDto;
-import com.pawbridge.userservice.dto.request.RefreshTokenRequestDto;
-import com.pawbridge.userservice.dto.response.RefreshTokenResponseDto;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 public interface AuthService {
 
     /**
      * Refresh Token을 사용하여 새로운 Access Token과 Refresh Token 발급
      */
-    RefreshTokenResponseDto refreshToken(RefreshTokenRequestDto requestDto);
+    void refreshToken(HttpServletRequest request, HttpServletResponse response);
 
     /**
      * 로그아웃 - Refresh Token 삭제
      */
-    void logout(Long userId);
+    void logout(Long userId, HttpServletResponse response);
 
     /**
      * 비밀번호 재설정 요청 (이메일 발송)

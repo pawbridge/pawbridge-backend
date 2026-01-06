@@ -5,6 +5,7 @@ import com.pawbridge.userservice.entity.User;
 import com.pawbridge.userservice.jwt.JwtProvider;
 import com.pawbridge.userservice.repository.RefreshTokenRepository;
 import com.pawbridge.userservice.security.PrincipalDetails;
+import com.pawbridge.userservice.util.CookieUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final JwtProvider jwtProvider;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final CookieUtil cookieUtil;
 
     @Value("${oauth2.redirect-uri}")
     private String redirectUri;
@@ -59,16 +61,14 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
             // 4. Refresh Token DB 저장 (JwtAuthenticationFilter와 동일한 패턴)
             saveRefreshToken(user.getUserId(), refreshToken);
 
-            // 5. 프론트엔드로 리다이렉트 (토큰을 쿼리 파라미터로 전달)
-            String targetUrl = UriComponentsBuilder.fromUriString(redirectUri)
-                    .queryParam("accessToken", accessToken)
-                    .queryParam("refreshToken", refreshToken)
-                    .build()
-                    .toUriString();
+            // 5. 쿠키에 토큰 설정
+            cookieUtil.createAccessTokenCookie(response, accessToken);
+            cookieUtil.createRefreshTokenCookie(response, refreshToken);
 
-            log.info("OAuth2 리다이렉트: {}", targetUrl);
+            // 6. 프론트엔드로 리다이렉트 (쿠키는 자동 전송)
+            log.info("OAuth2 리다이렉트: {}", redirectUri);
 
-            getRedirectStrategy().sendRedirect(request, response, targetUrl);
+            getRedirectStrategy().sendRedirect(request, response, redirectUri);
 
         } catch (Exception e) {
             log.error("OAuth2 토큰 생성 실패: {}", e.getMessage(), e);

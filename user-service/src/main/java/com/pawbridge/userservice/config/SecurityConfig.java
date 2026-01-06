@@ -6,6 +6,7 @@ import com.pawbridge.userservice.oauth2.handler.OAuth2FailureHandler;
 import com.pawbridge.userservice.oauth2.handler.OAuth2SuccessHandler;
 import com.pawbridge.userservice.oauth2.service.CustomOAuth2UserService;
 import com.pawbridge.userservice.repository.RefreshTokenRepository;
+import com.pawbridge.userservice.util.CookieUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,6 +30,7 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final OAuth2FailureHandler oAuth2FailureHandler;
+    private final CookieUtil cookieUtil;
 
     /**
      * BCryptPasswordEncoder Bean 등록
@@ -52,7 +54,7 @@ public class SecurityConfig {
 
         // JwtAuthenticationFilter 생성
         JwtAuthenticationFilter jwtAuthenticationFilter =
-                new JwtAuthenticationFilter(authenticationManager, jwtProvider, refreshTokenRepository);
+                new JwtAuthenticationFilter(authenticationManager, jwtProvider, refreshTokenRepository, cookieUtil);
 
         http
                 // CSRF 비활성화 (JWT 사용)
